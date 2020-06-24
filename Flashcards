@@ -1,0 +1,358 @@
+package flashcards;
+import javax.swing.*;
+import javax.swing.text.Style;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.*;
+class Action {
+    Scanner scanner = new Scanner(System.in);
+    public ArrayList<String> log = new ArrayList<>();
+    public Map<String, Integer> hardest = new TreeMap<>();
+ 
+    public Map<String, String> add(Map<String, String> test) {
+        String card = new String();
+        String definition = new String();
+        System.out.println("The card:");
+        log.add("The card:");
+        card = scanner.nextLine();
+        log.add(card);
+        if (test.containsKey(card)) {
+            System.out.printf("The card \"%s\" already exists.\n", card);
+            log.add("The card \"" + card + "\" already exists.");
+            return test;
+        }
+        System.out.println("The definition of the card:");
+        log.add("The definition of the card:");
+        definition = scanner.nextLine();
+        log.add(definition);
+        if (test.containsValue(definition)) {
+            System.out.printf("The definition \"%s\" already exists.\n", definition);
+            log.add("The definition \"" + definition + "\" already exists.");
+            return test;
+        }
+        test.put(card, definition);
+        if(!hardest.containsKey(card)) {
+            hardest.put(card, 0);
+        }
+        System.out.printf("The pair (\"%s\":\"%s\") has been added.\n", card, definition);
+        log.add("The pair \"" + card + "\":\"" + definition + "\" has been added.");
+        return test;
+    }
+ 
+    public Map<String, String> remove(Map<String, String> test) {
+        System.out.println("The card:");
+        log.add("The card:");
+        String card = scanner.nextLine();
+        log.add(card);
+        if (test.containsKey(card)) {
+            test.remove(card);
+            hardest.remove(card);
+            System.out.println("The card has been removed.");
+            log.add("The card has been removed.");
+        } else {
+            System.out.printf("Can't remove \"%s\": there is no such card.\n", card);
+            log.add("Can't remove \"" + card + "\": there is no such card.");
+        }
+ 
+        return test;
+    }
+ 
+    public Map<String, String> importCart(Map<String, String> test) {
+        String card = new String();
+        String definition = new String();
+        int count = 0;
+        System.out.println("File name:");
+        log.add("File name:");
+        String name = scanner.nextLine();
+        log.add(name);
+        try {
+            Scanner scannerFile = new Scanner(new File(name));
+            while (scannerFile.hasNext()) {
+                card = scannerFile.nextLine();
+                definition = scannerFile.nextLine();
+                test.put(card, definition);
+                if (!hardest.containsKey(card)) {
+                    hardest.put(card, 0);
+                }
+                count++;
+            }
+            System.out.println(count + " cards have been loaded.");
+            log.add(count + " cards have been loaded.");
+        } catch (IOException e) {
+            System.out.println("File not found.");
+        }
+        try {
+            Scanner hardestScanner = new Scanner(new File("hardestCard.txt"));
+            while (hardestScanner.hasNext()) {
+                hardest.put(hardestScanner.nextLine(), Integer.parseInt(hardestScanner.nextLine()));
+            }
+        } catch (IOException e) {}
+        return test;
+    }
+ 
+    public Map<String, String> importCart(Map<String, String> test, String name) {
+        String card = new String();
+        String definition = new String();
+        int count = 0;
+        try {
+            Scanner scannerFile = new Scanner(new File(name));
+            while (scannerFile.hasNext()) {
+                card = scannerFile.nextLine();
+                definition = scannerFile.nextLine();
+                test.put(card, definition);
+                if (!hardest.containsKey(card)) {
+                    hardest.put(card, 0);
+                }
+                count++;
+            }
+            System.out.println(count + " cards have been loaded.");
+            log.add(count + " cards have been loaded.");
+        } catch (IOException e) {
+            System.out.println("File not found.");
+        }
+        try {
+            Scanner hardestScanner = new Scanner(new File("hardestCard.txt"));
+            while (hardestScanner.hasNext()) {
+                hardest.put(hardestScanner.nextLine(), Integer.parseInt(hardestScanner.nextLine()));
+            }
+        } catch (IOException e) {}
+        return test;
+    }
+ 
+    public void exportCart(Map<String, String> test) {
+        int count = 0;
+        String definition = new String();
+        System.out.println("File name:");
+        log.add("File name:");
+        String name = scanner.nextLine();
+        log.add(name);
+        try (PrintWriter printWriter = new PrintWriter(name)) {
+            for (String card : test.keySet()) {
+                definition = test.get(card);
+                printWriter.println(card);
+                printWriter.println(definition);
+                count++;
+            }
+            System.out.println(count + " cards have been saved.");
+            log.add(count + " cards have been saved.");
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found.");
+        }
+        try (PrintWriter printWriter = new PrintWriter("hardestCard.txt")) {
+            for (String key : hardest.keySet()) {
+                printWriter.println(key);
+                printWriter.println(hardest.get(key));
+            }
+        } catch (FileNotFoundException e) { }
+    }
+ 
+    public void exportCart(Map<String, String> test, String name) {
+        int count = 0;
+        String definition = new String();
+        try (PrintWriter printWriter = new PrintWriter(name)) {
+            for (String card : test.keySet()) {
+                definition = test.get(card);
+                printWriter.println(card);
+                printWriter.println(definition);
+                count++;
+            }
+            System.out.println(count + " cards have been saved.");
+            log.add(count + " cards have been saved.");
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found.");
+        }
+        try (PrintWriter printWriter = new PrintWriter("hardestCard.txt")) {
+            for (String key : hardest.keySet()) {
+                printWriter.println(key);
+                printWriter.println(hardest.get(key));
+            }
+        } catch (FileNotFoundException e) { }
+    }
+ 
+    public void ask(Map<String, String> test) {
+        System.out.println("How many times to ask?");
+        log.add("How many times to ask?");
+        int n = scanner.nextInt();
+        log.add(n + "");
+        scanner.nextLine();
+        for (int i = 0; i < n; i++) {
+            Random random = new Random();
+            int m = random.nextInt(test.size());
+            int count = 0;
+            for (String key : test.keySet()) {
+                if (count == m) {
+                    System.out.println("Print definition of \"" + key + "\":");
+                    log.add("Print definition of \"" + key + "\":");
+                    String answer = scanner.nextLine();
+                    log.add(answer);
+                    if (test.get(key).equals(answer)) {
+                        System.out.println("Correct answer.");
+                        log.add("Correct answer.");
+                    } else {
+                        hardest.put(key, hardest.get(key) + 1);
+                        System.out.print("Wrong answer. The correct one is \"" + test.get(key) + "\"");
+                        log.add("Wrong answer. The correct one is \"" + test.get(key) + "\"");
+                        if (test.containsValue(answer)) {
+                            for (String k : test.keySet()) {
+                                if (test.get(k).equals(answer)) {
+                                    System.out.println(", you've just written the definition of \"" + k + "\".");
+                                    log.add(", you've just written the definition of \"" + k + "\".");
+                                    break;
+                                }
+                            }
+                        } else System.out.println(".");
+                        log.add(".");
+                    }
+                    break;
+                }
+                count++;
+            }
+        }
+    }
+ 
+    public void actionLog() {
+        System.out.println("File name:");
+        log.add("File name:");
+        String name = scanner.nextLine();
+        log.add(name);
+        try (PrintWriter printWriter = new PrintWriter(name)) {
+            printWriter.println(log);
+            log.clear();
+            System.out.println("The log has been saved.");
+        } catch (FileNotFoundException e) {
+            System.out.println("No file");
+        }
+    }
+ 
+    public void hardestCard(Map<String, String> test) {
+        int maxMistake = 0;
+        ArrayList<String> hardestList = new ArrayList<>();
+        for(String key : hardest.keySet()) {
+            if (test.containsKey(key)) {
+                maxMistake = hardest.get(key) > maxMistake ? hardest.get(key) : maxMistake;
+            }
+        }
+        if (maxMistake == 0) {
+            System.out.println("There are no cards with errors.");
+            log.add("There are no cards with errors.");
+        }
+        else {
+            for (String key : hardest.keySet()) {
+                if (hardest.get(key) == maxMistake && test.containsKey(key)) hardestList.add(key);
+            }
+            if (hardestList.size() > 1) {
+                System.out.print("The hardest cards are \"" + hardestList.get(0) + "\"");
+                log.add("The hardest cards are \"" + hardestList.get(0) + "\"");
+                hardestList.remove(0);
+                for (String key : hardestList) {
+                    System.out.print(", \"" + key + "\"");
+                    log.add(", \"" + key + "\"");
+                }
+            } else {
+                System.out.print("The hardest card is \"" + hardestList.get(0) + "\"");
+                log.add("The hardest card is \"" + hardestList.get(0) + "\"");
+                hardestList.remove(0);
+            }
+            System.out.println(". You have " + maxMistake + " errors answering them.");
+            log.add(". You have " + maxMistake + " errors answering them.");
+        }
+    }
+ 
+    public void resetStats() {
+        for (String key : hardest.keySet()) {
+            hardest.put(key, 0);
+        }
+        System.out.println("Card statistics has been reset.");
+        log.add("Card statistics has been reset.");
+    }
+ 
+    public void exit() {
+        try (PrintWriter printWriter = new PrintWriter("hardestCard.txt")) {
+            for (String key : hardest.keySet()) {
+                printWriter.println(key);
+                printWriter.println(hardest.get(key));
+            }
+        } catch (FileNotFoundException e) { }
+    }
+ 
+    public void start() {
+       try {
+           Scanner hardestScanner = new Scanner(new File("hardestCard.txt"));
+           while (hardestScanner.hasNext()) {
+               hardest.put(hardestScanner.nextLine(), Integer.parseInt(hardestScanner.nextLine()));
+           }
+       } catch (IOException e) {}
+    }
+}
+ 
+public class Main {
+    public static void main(String[] args) {
+        Map<String, String> test = new LinkedHashMap<>();
+        Scanner scanner = new Scanner(System.in);
+        Action actionClass = new Action();
+        boolean start = true;
+        boolean stop = false;
+        int val = 0;
+        if (args.length != 0) {
+            for (int i = 0; i < args.length; i += 2) {
+                switch (args[i]) {
+                    case "-import":
+                        test = actionClass.importCart(test, args[i + 1]);
+                        break;
+                    case "-export":
+                        stop = true;
+                        val = i;
+                        break;
+                }
+            }
+        }
+        while (start) {
+            System.out.println("Input the action (add, remove, import, export, ask, exit, log, " +
+                    "hardest card, reset stats):");
+            actionClass.log.add("Input the action (add, remove, import, export, ask, exit, log, " +
+                    "hardest card, reset stats):");
+            String action = scanner.nextLine();
+            actionClass.log.add(action);
+            switch (action){
+                case "add":
+                    test = actionClass.add(test);
+                    break;
+                case "remove":
+                    test = actionClass.remove(test);
+                    break;
+                case "import":
+                    test = actionClass.importCart(test);
+                    break;
+                case "export":
+                    actionClass.exportCart(test);
+                    break;
+                case "ask":
+                    actionClass.ask(test);
+                    break;
+                case "exit":
+                    start = false;
+                    System.out.println("Bye bye!");
+                    actionClass.log.add("Bye bye!");
+                    if (stop) actionClass.exportCart(test, args[val + 1]);
+                    break;
+                case "log":
+                    actionClass.actionLog();
+                    break;
+                case "hardest card":
+                    actionClass.hardestCard(test);
+                    break;
+                case "reset stats":
+                    actionClass.resetStats();
+                    break;
+                default:
+                    System.out.println("Not correct input");
+                    actionClass.log.add("Not correct input");
+                    break;
+            }
+            System.out.println();
+            actionClass.log.add("");
+        }
+    }
+}
