@@ -1,0 +1,145 @@
+package tictactoe;
+
+import java.beans.IntrospectionException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
+
+public class Main {
+    public static class Check {
+        public ArrayList<Character> checkV(char ch, char mass[][], ArrayList<Character> myCheck) {
+            int i = 1;
+            for (int j = 0; j < 3; j++) {
+                if (mass[j][i] == ch && mass[j][i - 1] == ch && mass[j][i + 1] == ch) {
+                    myCheck.add(ch);
+                }
+            }
+            return myCheck;
+        }
+        public ArrayList<Character> checkH(char ch, char mass[][], ArrayList<Character> myCheck) {
+            int j = 1;
+            for (int i = 0; i < 3; i++) {
+                if (mass[j][i] == ch && mass[j - 1][i] == ch && mass[j + 1][i] == ch) {
+                    myCheck.add(ch);
+                }
+            }
+            return myCheck;
+        }
+        public ArrayList<Character> checkD(char ch, char mass[][], ArrayList<Character> myCheck) {
+            int j = 1;
+            int i = 1;
+            if (mass[i][j] == ch && mass[i - 1][j - 1] == ch && mass[i + 1][j + 1] == ch) {
+                myCheck.add(ch);
+            }
+            if (mass[i][j] == ch && mass[i - 1][j + 1] == ch && mass[i + 1][j - 1] == ch) {
+                myCheck.add(ch);
+            }
+            return myCheck;
+        }
+
+        public void print(char[][] mass) {
+            System.out.println("---------");
+            System.out.println();
+            for (char[] i : mass) {
+                System.out.print("| ");
+                for (char c : i) {
+                    System.out.print(c + " ");
+                }
+                System.out.println("|");
+            }
+            System.out.println("---------");
+        }
+        public void print(char[][] mass, boolean b) {
+            System.out.println("---------");
+            for (char[] i : mass) {
+                System.out.print("| ");
+                for (char c : i) {
+                    if (c != '_') System.out.print(c + " ");
+                    else System.out.print("  ");
+                }
+                System.out.println("|");
+            }
+            System.out.println("---------");
+        }
+
+        public void enterCoord(char[][] mass, char ch) {
+            Scanner scanner = new Scanner(System.in);
+            while (true) {
+                System.out.print("Enter the coordinates:");
+                Integer a1 = scanner.nextInt();
+                Integer a2 = scanner.nextInt();
+                if (a1 == null || a2 == null) {
+                    System.out.println("You should enter numbers!");
+                }
+                else if (a1 > 3 || a2 > 3 || a1 < 1 || a2 < 1) {
+                    System.out.println("Coordinates should be from 1 to 3!");
+                }
+                else if (mass[3 - a2][a1 - 1] != '_') {
+                    System.out.println("This cell is occupied! Choose another one!");
+                }
+                else {
+                    mass[3 - a2][a1 - 1] = ch;
+                    break;
+                }
+            }
+        }
+    }
+    public static void main(String[] args) {
+        Check check = new Check();
+        Map<Character, Integer> map = new HashMap<>();
+        map.put('X', 0);
+        map.put('O', 0);
+        map.put('_', 0);
+        char mass[][] = new char[3][3];
+        Scanner scanner = new Scanner(System.in);
+        for (int i = 0; i < 3; i++) {
+            for(int j = 0; j < 3; j++) {
+                mass[i][j] = '_';
+                map.put(mass[i][j], map.get(mass[i][j]) + 1);
+            }
+        }
+
+       /* */
+        boolean stop = false;
+        check.print(mass, true);
+        char ch = 'O';
+        while (!stop) {
+            ch = ch == 'O' ? 'X' : 'O';
+            check.enterCoord(mass, ch);
+            check.print(mass,true);
+            boolean b = false;
+            ArrayList<Character> myCheck = new ArrayList<>();
+            myCheck = check.checkV('X', mass, myCheck);
+            myCheck = check.checkV('O', mass, myCheck);
+            myCheck = check.checkH('X', mass, myCheck);
+            myCheck = check.checkH('O', mass, myCheck);
+            myCheck = check.checkD('X', mass, myCheck);
+            myCheck = check.checkD('O', mass, myCheck);
+            if (myCheck.size() > 1 || map.get('X') + 1 < map.get('O') || map.get('X') - 1 > map.get('O')) {
+                System.out.println("Impossible");
+                stop = true;
+            }
+            else if (myCheck.size() == 1) {
+                System.out.print(myCheck.get(0) + " wins");
+                stop = true;
+            }
+            else if (myCheck.size() < 1) {
+                for (char[] i : mass) {
+                    for (char j : i) {
+                        if (j == '_') {
+                            b = true;
+                            break;
+                        }
+                    }
+                }
+                if (!b){
+                    check.print(mass);
+                    System.out.print("Draw");
+                    stop = true;
+                }
+            }
+            else System.out.print("mis");
+        }
+    }
+}
