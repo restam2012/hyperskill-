@@ -1,0 +1,491 @@
+package tictactoe;
+
+import java.util.InputMismatchException;
+import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        Check check = new Check();
+        boolean stop = false, restart = true;
+        String[] startPlay = new String[3];
+        while (restart) {
+            restart = false;
+            System.out.println("Input command: ");
+            String[] ac = scanner.nextLine().split(" ");
+            if (ac == null || ac.length == 2 || ac.length > 3) {
+                System.out.println("Bad parameters!");
+                restart = true;
+            }
+            if (!restart) {
+                switch (ac[0]) {
+                    case "start":
+                        startPlay[0] = "start";
+                        if (ac.length == 1) {
+                            System.out.println("Bad parameters!");
+                            restart = true;
+                        }
+                        break;
+                    case "exit":
+                        return;
+                    default:
+                        System.out.println("Bad parameters!");
+                        restart = true;
+                        break;
+                }
+            }
+            if (!restart) {
+                switch (ac[1]) {
+                    case "easy":
+                    case "user":
+                    case "medium":
+                    case "hard":
+                        startPlay[1] = ac[1];
+                        break;
+                    default:
+                        System.out.println("Bad parameters!");
+                        restart = true;
+                        break;
+                }
+            }
+            if (!restart) {
+                switch (ac[2]) {
+                    case "easy":
+                    case "user":
+                    case "medium":
+                    case "hard":
+                        startPlay[2] = ac[2];
+                        check.autoRun(startPlay);
+                        restart = false;
+                        break;
+                    default:
+                        System.out.println("Bad parameters!");
+                        restart = true;
+                        break;
+                }
+            }
+        }
+    }
+}
+package tictactoe;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class Player {
+    List<Integer> coordinats = new ArrayList<>();
+    public List<Integer> whoPlayer(String player, char[][] ticTacToe, char c) {
+        if (player.equals("easy")) {
+            EasyPlayer easyPlayer = new EasyPlayer();
+            coordinats = easyPlayer.actionEasy(ticTacToe);
+        }
+        else if (player.equals("user")) {
+            UserPlayer userPlayer = new UserPlayer();
+            coordinats = userPlayer.user(ticTacToe);
+        }
+        else if(player.equals("medium")) {
+            MediumPlayer mediumPlayer = new MediumPlayer();
+            coordinats = mediumPlayer.actionMedium(ticTacToe, c);
+        }
+        else if(player.equals("hard")) {
+            HardPlayer hardPlayer = new HardPlayer();
+            coordinats = hardPlayer.hardAction(ticTacToe, c);
+        }
+        return coordinats;
+    }
+
+    protected boolean checkPosition(Integer x, Integer y, boolean b, char[][] ticTacToe) {
+        if (ticTacToe[x - 1][y - 1] != ' ') {
+            return true;
+        }
+        return false;
+    }
+
+    protected boolean checkPosition(Integer x, Integer y, char[][] ticTacToe) {
+        if (x == null || y == null) {
+            System.out.println("You should enter numbers!");
+            return true;
+        }
+        if (x < 1 || x > 3 || y < 1 || y > 3) {
+            System.out.println("Coordinates should be from 1 to 3!");
+            return true;
+        }
+        if (ticTacToe[x - 1][y - 1] != ' ') {
+            System.out.println("This cell is occupied! Choose another one!");
+            return true;
+        }
+        return false;
+    }
+
+}
+package tictactoe;
+
+import java.util.*;
+
+public class Check {
+    char[][] ticTacToe = new char[3][3]; //= {{' ', ' ', ' '},{' ', ' ', ' '}, {' ', ' ', ' '}};
+    int count = 9;
+    Player playerClass = new Player();
+    Check(){
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                ticTacToe[i][j] = ' ';
+            }
+        }
+    }
+    public void print(char[][] ticTacToe ) {
+        System.out.println("---------");
+        for (int j = 2; j >= 0; j--) {
+            System.out.print("| ");
+            for (int i = 0; i < 3; i++) {
+                System.out.print(ticTacToe[i][j] + " ");
+            }
+            System.out.println("|");
+        }
+        System.out.println("---------");
+    }
+
+    public void autoRun(String[] player) {
+        List<Integer> coordinats = new ArrayList<>();
+        boolean stop = false;
+        print(ticTacToe);
+        while (!stop) {
+            coordinats = playerClass.whoPlayer(player[1], ticTacToe, 'X');
+            addCoordinates(coordinats, 'X');
+            stop = checkWin('X');
+            if (stop) break;
+            coordinats = playerClass.whoPlayer(player[2], ticTacToe, 'O');
+            addCoordinates(coordinats, 'O');
+            stop = checkWin('O');
+        }
+    }
+
+    protected void addCoordinates(List<Integer> coordinats, char c) {
+        int x = coordinats.get(0);
+        int y = coordinats.get(1);
+        ticTacToe[x - 1][y - 1] = c;
+        count--;
+        print(ticTacToe);
+    }
+
+    private boolean checkWin(char l) {
+        int i = 1;
+        for (int j = 0; j < 3; j++) {
+            if (ticTacToe[i][j] == l && ticTacToe[i - 1][j] == l && ticTacToe[i + 1][j] == l){
+                System.out.println(l + " wins");
+                return true;
+            }
+            else if (ticTacToe[j][i] == l && ticTacToe[j][i - 1] == l && ticTacToe[j][i + 1] == l) {
+                System.out.println(l + " wins");
+                return true;
+            }
+        }
+        i = 1;
+        int j = 1;
+        if ((ticTacToe[i][j] == l && ticTacToe[i - 1][j + 1] == l && ticTacToe[i + 1][j - 1] == l) ||
+                (ticTacToe[i][j] == l && ticTacToe[i - 1][j - 1] == l && ticTacToe[i + 1][j + 1] == l)) {
+            System.out.println(l + " wins");
+            return true;
+        }
+        if (count > 0) {
+            return false;
+        }
+        System.out.println("Draw");
+        return true;
+    }
+}
+package tictactoe;
+
+import java.util.*;
+
+public class UserPlayer extends Player {
+    List<Integer> coordinats = new ArrayList<>();
+    public List<Integer> user (char[][] ticTacToe) {
+        Integer x = -1, y = -1;
+        boolean stop = true;
+        Scanner scanner = new Scanner(System.in);
+        while (stop) {
+            try {
+                System.out.print("Enter the coordinates: ");
+                x = scanner.nextInt();
+                y = scanner.nextInt();
+                stop = checkPosition(x, y, ticTacToe);
+            } catch (InputMismatchException e) {
+                System.out.println("You should enter numbers!");
+            }
+        }
+        coordinats.add(x);
+        coordinats.add(y);
+        return coordinats;
+    }
+}
+package tictactoe;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+public class EasyPlayer extends Player {
+    List<Integer> coordinats = new ArrayList<>();
+    protected List<Integer> actionEasy(char[][] ticTacToe) {
+        Random random = new Random();
+        System.out.println("Making move level \"easy\"");
+        boolean stop = true;
+        int x = -1, y = -1;
+        while (stop) {
+            x = random.nextInt(3) + 1;
+            y = random.nextInt(3) + 1;
+            stop = checkPosition(x, y, true, ticTacToe);
+        }
+        coordinats.add(x);
+        coordinats.add(y);
+        return coordinats;
+    }
+}
+package tictactoe;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+public class MediumPlayer extends Player {
+    List<Integer> coordinats = new ArrayList<>();
+    protected List<Integer> actionMedium(char[][] ticTacToe, char c) {
+        Random random = new Random();
+        System.out.println("Making move level \"medium\"");
+        boolean stop = true;
+        int x = -1, y = -1;
+        int i = 1;
+        for(int j = 0; j < 3; j++) {
+            if (ticTacToe[i][j] == c && ticTacToe[i - 1][j] == c) {
+                x = i + 1 + 1;
+                y = j + 1;
+                stop = checkPosition(x, y, true, ticTacToe);
+            }
+            else if (ticTacToe[i][j] == c && ticTacToe[i + 1][j] == c) {
+                x = i - 1 + 1;
+                y = j + 1;
+                stop = checkPosition(x, y, true, ticTacToe);
+            }
+        }
+        int j = 1;
+        if(stop) {
+            for (i = 0; i < 3; i++) {
+                if (ticTacToe[i][j] == c && ticTacToe[i][j - 1] == c) {
+                    x = i + 1;
+                    y = j + 1 + 1;
+                    stop = checkPosition(x, y, true, ticTacToe);
+                }
+                else if (ticTacToe[i][j] == c && ticTacToe[i][j + 1] == c) {
+                    x = i + 1;
+                    y = j - 1 + 1;
+                    stop = checkPosition(x, y, true, ticTacToe);
+                }
+            }
+        }
+        if (stop) {
+            i = 1;
+            j = 1;
+            if (ticTacToe[i][j] == c && ticTacToe[i - 1][j + 1] == c) {
+                x = i + 1 + 1;
+                y = j - 1 + 1;
+                stop = checkPosition(x, y, true, ticTacToe);
+            }
+            else if (ticTacToe[i][j] == c && ticTacToe[i + 1][j - 1] == c){
+                x = i - 1 + 1;
+                y = j + 1 + 1;
+                stop = checkPosition(x, y, true, ticTacToe);
+            }
+            else if (ticTacToe[i][j] == c && ticTacToe[i - 1][j - 1] == c) {
+                x = i + 1 + 1;
+                y = j + 1 + 1;
+                stop = checkPosition(x, y, true, ticTacToe);
+            }
+            else if (ticTacToe[i][j] == c && ticTacToe[i + 1][j + 1] == c) {
+                x = i - 1 + 1;
+                y = j - 1 + 1;
+                stop = checkPosition(x, y, true, ticTacToe);
+            }
+        }
+
+
+
+        if(stop) {
+            char ic = c == 'X' ? 'O' : 'X';
+            i = 1;
+            for(j = 0; j < 3; j++) {
+                if (ticTacToe[i][j] == ic && ticTacToe[i - 1][j] == ic) {
+                    x = i + 1 + 1;
+                    y = j + 1;
+                    stop = checkPosition(x, y, true, ticTacToe);
+                }
+                else if (ticTacToe[i][j] == ic && ticTacToe[i + 1][j] == ic) {
+                    x = i - 1 + 1;
+                    y = j + 1;
+                    stop = checkPosition(x, y, true, ticTacToe);
+                }
+            }
+            j = 1;
+            if(stop) {
+                for (i = 0; i < 3; i++) {
+                    if (ticTacToe[i][j] == ic && ticTacToe[i][j - 1] == ic) {
+                        x = i + 1;
+                        y = j + 1 + 1;
+                        stop = checkPosition(x, y, true, ticTacToe);
+                    }
+                    else if (ticTacToe[i][j] == ic && ticTacToe[i][j + 1] == ic) {
+                        x = i + 1;
+                        y = j - 1 + 1;
+                        stop = checkPosition(x, y, true, ticTacToe);
+                    }
+                }
+            }
+            if (stop) {
+                i = 1;
+                j = 1;
+                if (ticTacToe[i][j] == ic && ticTacToe[i - 1][j + 1] == ic) {
+                    x = i + 1 + 1;
+                    y = j - 1 + 1;
+                    stop = checkPosition(x, y, true, ticTacToe);
+                }
+                else if (ticTacToe[i][j] == ic && ticTacToe[i + 1][j - 1] == ic){
+                    x = i - 1 + 1;
+                    y = j + 1 + 1;
+                    stop = checkPosition(x, y, true, ticTacToe);
+                }
+                else if (ticTacToe[i][j] == ic && ticTacToe[i - 1][j - 1] == ic) {
+                    x = i + 1 + 1;
+                    y = j + 1 + 1;
+                    stop = checkPosition(x, y, true, ticTacToe);
+                }
+                else if (ticTacToe[i][j] == ic && ticTacToe[i + 1][j + 1] == ic) {
+                    x = i - 1 + 1;
+                    y = j - 1 + 1;
+                    stop = checkPosition(x, y, true, ticTacToe);
+                }
+            }
+        }
+
+
+        while (stop) {
+            x = random.nextInt(3) + 1;
+            y = random.nextInt(3) + 1;
+            stop = checkPosition(x, y, true, ticTacToe);
+        }
+        coordinats.add(x);
+        coordinats.add(y);
+        return coordinats;
+    }
+}
+package tictactoe;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class HardPlayer extends Player{
+    List<Integer> coordinats = new ArrayList<>();
+    public List<Integer> hardAction (char[][] ticTacToe, char ch) {
+        coordinats = BestMove(ticTacToe, ch);
+        return coordinats;
+    }
+    private List<Integer> BestMove(char[][] ticTacToe, char ch) {
+        int x = 0, y = 0;
+        int bestScore = Integer.MIN_VALUE;
+        for(int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (!checkPosition(i + 1, j + 1, true, ticTacToe)) {
+                    ticTacToe[i][j] = ch;
+                    int score = minimax(ticTacToe, 0, false, ch);
+                    ticTacToe[i][j] = ' ';
+                    if (score > bestScore) {
+                        bestScore = score;
+                        x = i + 1;
+                        y = j + 1;
+                    }
+                }
+            }
+        }
+        coordinats.add(x);
+        coordinats.add(y);
+        return coordinats;
+    }
+    private int minimax(char[][] ticTacToe, int deph, boolean isMaximizing, char ch) {
+        char notCh = ch == 'X' ? 'O' : 'X';
+        int score = 0;
+        String result = checkWinner(ticTacToe);
+        if (!result.equals("notStop")) {
+            return score(result, ch, notCh);
+        }
+        if (isMaximizing) {
+            int bestScore = Integer.MIN_VALUE;
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    if (!checkPosition(i + 1, j + 1,true, ticTacToe)) {
+                        ticTacToe[i][j] = ch;
+                        score = minimax(ticTacToe, deph + 1, false, ch);
+                        ticTacToe[i][j] = ' ';
+                        if (score > bestScore) {
+                            bestScore = score;
+                        }
+                    }
+                }
+            }
+            return bestScore;
+        }
+        else {
+            int bestScore = Integer.MAX_VALUE;
+            for(int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    if (!checkPosition(i + 1, j + 1, true, ticTacToe)) {
+                        ticTacToe[i][j] = ch;
+                        score = minimax(ticTacToe, deph + 1, true, ch);
+                        ticTacToe[i][j] = ' ';
+                        if (score < bestScore) {
+                            bestScore = score;
+                        }
+                    }
+                }
+            }
+            return bestScore;
+        }
+    }
+
+    private String checkWinner(char[][] ticTacToe) {
+        String winner = "notStop";
+        for (int i = 0; i < 3; i++) {
+            if(ticTacToe[0][i] == ticTacToe[1][i] && ticTacToe[1][i] == ticTacToe[2][i]) {
+                return ticTacToe[0][i] + "";
+            }
+        }
+        for (int i = 0; i < 3; i++) {
+            if(ticTacToe[i][0] == ticTacToe[i][1] && ticTacToe[i][1] == ticTacToe[i][2]) {
+                return ticTacToe[i][0] + "";
+            }
+        }
+        if(ticTacToe[0][0] == ticTacToe[1][1] && ticTacToe[1][1] == ticTacToe[2][2]) {
+            return ticTacToe[0][0] + "";
+        }
+        if(ticTacToe[2][0] == ticTacToe[1][1] && ticTacToe[1][1] == ticTacToe[2][0]) {
+            return ticTacToe[2][0] + "";
+        }
+        int openSpot = 0;
+        for (int i = 0; i < 3; i++) {
+            for(int j = 0; j < 3; j++) {
+                if (ticTacToe[i][j] == ' ') openSpot++;
+            }
+        }
+
+        if (openSpot == 0) {
+            return "tie";
+        }
+        else return winner;
+    }
+
+    public int score(String str, char ch, char notCh) {
+        if (str.equals(ch + "")) return 1;
+        else if (str.equals(notCh + "")) return -1;
+        else return 0;
+    }
+}
