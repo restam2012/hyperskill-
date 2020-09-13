@@ -1,0 +1,200 @@
+package readability;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class Main {
+    public static int character = 0, wordInText = 0, sentences = 0, syllables = 0, polysyllables = 0;
+    public static void main(String[] args) {
+        String text = "";
+        try(Reader reader = new FileReader(args[0])) {
+            Scanner scanner = new Scanner(reader);
+            while (scanner.hasNext()) {
+                text += scanner.nextLine();
+            }
+        } catch (FileNotFoundException e) {System.out.print("noFile");}
+        catch (IOException e) {System.out.print("exeption");}
+        /*Scanner scanner = new Scanner(System.in);
+        text += scanner.nextLine();*/
+        System.out.println("The text is:");
+        System.out.println(text);
+        calcilation(text);
+
+        // double score = 4.71 * character / wordInText + 0.5 * wordInText / count.size() - 21.43;
+        System.out.println("Words: " + wordInText);
+        System.out.println("Sentences: " + sentences);
+        System.out.println("Characters: " + character);
+        System.out.println("Syllables: " + syllables);
+        System.out.println("Polysyllables: " + polysyllables);
+        System.out.println("Enter the score you want to calculate (ARI, FK, SMOG, CL, all): ");
+        Scanner input = new Scanner(System.in);
+        String choice = input.nextLine();
+        int age = 0;
+        switch (choice){
+            case "ARI":
+                new Ari().ari();
+                break;
+            case "FK":
+                new FK().fk();
+                break;
+            case "SMOG":
+                new Smoge().smoge();
+                break;
+            case "CL":
+                new Cl().cl();
+                break;
+            case "all":
+                age = new Ari().ari();
+                age += new FK().fk();
+                age += new Smoge().smoge();
+                age += new Cl().cl();
+                System.out.println();
+                System.out.printf("This text should be understood in average by %f year olds.", (double)age / 4);
+                break;
+        }
+
+    }
+    public static void calcilation(String text) {
+        int c = 0;
+        String[] worlds = text.split("[\\s]+");
+        ArrayList<Integer> count = new ArrayList<>();
+        for(String word : worlds) {
+            if(word.matches(".*[.!?]+.*")) {
+                character += word.length();
+                count.add(++c);
+                c = 0;
+            }
+            else {
+                character += word.length();
+                c++;
+            }
+            //word.replaceAll("[.!?,]", "");
+            int sentencesInWord = 0;
+            Pattern pattern = Pattern.compile("[^aeiouy]?[aeiouy][^.!?,]");   /*[^aeiouy][aeiouy][.]*/
+            Matcher matcher = pattern.matcher(word.toLowerCase().trim());
+            while (matcher.find()){
+                ++sentencesInWord;
+                syllables++;
+            }
+            if(word.matches("[^aeiouy][aiouy][.!?,]*")){
+                //System.out.println();
+                ++sentencesInWord;
+                syllables++;
+            }
+            if (sentencesInWord == 0) {
+                ++sentencesInWord;
+                syllables++;
+            }
+            else if(sentencesInWord > 2) polysyllables++;
+            // System.out.print(word + sentencesInWord + " ");
+        }
+        if (c > 0) count.add(c);
+        for(int i : count) {
+            wordInText += i;
+        }
+        sentences = count.size();
+    }
+}
+
+package readability;
+
+public class FK {
+    public int fk(){
+        double score = 0.39 * Main.wordInText / Main.sentences + 11.8 * Main.syllables / Main.wordInText - 15.59;
+        int age = new Score().findAge(score);
+        System.out.printf("Flesch–Kincaid readability tests: %f (about %d year olds).\n", score, age);
+        return age;
+    }
+}
+
+package readability;
+
+public class Smoge {
+    public int smoge(){
+        double score = 1.043 * Math.sqrt(Main.polysyllables * 30 / Main.sentences) + 3.1291;
+        int age = new Score().findAge(score);
+        System.out.printf("Simple Measure of Gobbledygook: %f (about %d year olds).\n", score, age);
+        return age;
+    }
+}
+
+package readability;
+
+public class Cl {
+    public int cl(){
+        double score = 0.0588 * Main.character / Main.wordInText * 100 - 0.296 * Main.sentences / Main.wordInText * 100 - 15.8;
+        int age = new Score().findAge(score);
+        System.out.printf("Coleman–Liau index: %f (about %d year olds).\n", score, age);
+        return age;
+    }
+}
+
+package readability;
+
+public class Ari {
+    public int ari() {
+        double score = 4.71 * Main.character / Main.wordInText + 0.5 * Main.wordInText / Main.sentences - 21.43;
+        int age = new Score().findAge(score);
+        System.out.printf("Automated Readability Index: %f (about %d year olds).\n", score, age);
+        return age;
+    }
+}
+
+package readability;
+
+public class Score {
+    protected int findAge(double score){
+        int age = 0;
+        switch ((int)Math.round(score)){
+            case 1:
+                age = 6;
+                break;
+            case 2:
+                age = 7;
+                break;
+            case 3:
+                age = 9;
+                break;
+            case 4:
+                age = 10;
+                break;
+            case 5:
+                age = 11;
+                break;
+            case 6:
+                age = 12;
+                break;
+            case 7:
+                age = 13;
+                break;
+            case 8:
+                age = 14;
+                break;
+            case 9:
+                age = 15;
+                break;
+            case 10:
+                age = 16;
+                break;
+            case 11:
+                age = 17;
+                break;
+            case 12:
+                age = 18;
+                break;
+            case 13:
+                age = 24;
+                break;
+            case 14:
+                age = 25;
+                break;
+            default:
+                System.out.print("Mistake");
+                break;
+        }
+        return age;
+    }
+}
