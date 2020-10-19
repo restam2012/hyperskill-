@@ -1,0 +1,410 @@
+package solver;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+interface Command{
+    ArrayList<String> execute();
+}
+
+public class Main {
+    public static void main(String[] args) {
+        ArrayList<String> result;
+        boolean hasSolution = true;
+        //input
+        String in = "", out = "";
+        for (int i = 0; i < args.length; i++) {
+            if(args[i] == "-in")
+            in = args[i + 1];
+            if (args[i] == "-out")
+            out = args[i + 1];
+        }
+        try (Reader reader = new FileReader(in);) {
+            Scanner scanner = new Scanner(reader);
+            int n = scanner.nextInt();
+            int m = scanner.nextInt();
+            scanner.nextLine();
+            Double[][] realMass = new Double[m][n + 1];
+            Double[][] imageMass = new Double[m][n + 1];
+            String valString = "";
+            boolean ifValReal = true;
+            for (int i = 0; i < m; i++) {
+                int j = 0;
+                String[] stringLine = scanner.nextLine().trim().split("\\s+");
+                for (String complex : stringLine) {
+                    //System.out.println(complex);
+                    valString = "";
+                    for (int k = 0; k < complex.length(); k++) {
+                        String s = complex.substring(k, k + 1);
+                        if (s.matches("\\d|\\.")) valString += s;
+                        else if (s.matches("i")) ifValReal = false;
+                        else if (s.matches("\\+|-")) {
+                            if (k == 0) valString += s;
+                            else {
+                                if (ifValReal) {
+                                    realMass[i][j] = Double.valueOf(valString);
+                                } else {
+                                    if (valString.length() == 0) imageMass[i][j] = 1.0;
+                                    else {
+                                        imageMass[i][j] = Double.valueOf(valString);
+                                    }
+                                }
+                                ifValReal = true;
+                                valString = "";
+                                if (s.matches("-")) valString += s;
+                            }
+                        }
+                        if (k == complex.length() - 1) {
+                            if (ifValReal) {
+                                realMass[i][j] = Double.valueOf(valString);
+                            } else {
+                                if (valString.length() == 0) imageMass[i][j] = 1.0;
+                                else if (valString.equals("-")) imageMass[i][j] = -1.0;
+                                else {
+                                    imageMass[i][j] = Double.valueOf(valString);
+                                }
+                            }
+                            valString = "";
+                            ifValReal = true;
+                            if (realMass[i][j] == null) realMass[i][j] = 0.0;
+                            if (imageMass[i][j] == null) imageMass[i][j] = 0.0;
+                        }
+                    }
+                    j++;
+                }
+            }
+
+            for (int i = 0; i < realMass.length; i++) {
+                for (int j = 0; j < realMass[i].length; j++) {
+                    System.out.print(realMass[i][j] + "+" + imageMass[i][j] + "i  ");
+                }
+                System.out.println();
+            }
+
+
+            //Command Pattern
+            Controller controller = new Controller();
+            FindAllMembers findAllMembers = new FindAllMembers(realMass, imageMass);
+            CommandForFind commandForFind = new CommandForFind(findAllMembers);
+            controller.setCommand(commandForFind);
+            result = controller.executeCommand();
+            if(result.contains("Infinite solution") || result.contains("No solutions")){
+                hasSolution = false;
+            }
+
+            //output
+            try (PrintWriter writer = new PrintWriter(out)) {
+                for (String s : result) {
+                    writer.println(s);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Output error " + e);
+        }
+
+        if (hasSolution) {
+            System.out.print("The solution is: (");
+            try (Reader reader = new FileReader(out)) {
+                Scanner scanner = new Scanner(reader);
+                System.out.print(scanner.nextLine());
+                while (scanner.hasNextLine()) {
+                    System.out.print(", " + scanner.nextLine());
+                }
+            } catch (IOException e) {
+                System.out.println(e);
+            }
+            System.out.println(")");
+        }
+        System.out.println("Saved to file " + out);
+    }
+}
+
+package solver;
+
+import java.awt.*;
+
+public class FindAllMembers{ //this is the receive
+    Double[][] realMass, imageMass;
+    static int[] orderElements;
+    FindAllMembers(Double[][] realMass, Double[][] imageMass){
+        this.realMass = realMass;
+        this.imageMass = imageMass;
+    }
+    //This method find all members of equations
+    public FindAllMembers findY() {
+        double cr = 0, ci = 0; //universal variable
+        int c1 = 0;
+        double[] bufferColumn = new double[realMass.length];
+
+        orderElements = new int[realMass[0].length]; //order of element
+        for(int d = 0; d < realMass[0].length; d++) {
+            orderElements[d] = c1++;
+        }
+
+        System.out.println("Rows manipulation:");
+        for(int i = 0, j = 0; i < realMass.length && j < realMass[i].length - 1; i++, j++) {
+            //for change line if required members is zero
+            while (realMass[i][j] == 0 && i != realMass.length - 1) {
+                int notNullElement = -1;
+                //find notNullElement
+                for(int m = i + 1; m < realMass.length; m++) {
+                    if (realMass[m][j] != 0) {
+                        notNullElement = m;
+                        break;
+                    }
+                }
+                //swap Line
+                if(notNullElement > 0) {
+                    swapLine(realMass, imageMass,i, notNullElement);
+                }
+                //if all element under is zero go to right
+                else {
+                    int val = 0;
+                    while (notNullElement < 0 && val + i < realMass.length) {
+                        for (int m = j + 1; m < realMass[i].length - 1; m++) {
+                            if (realMass[i + val][m] != 0) {
+                                notNullElement = m;
+                                break;
+                            }
+                        }
+                        //swap column
+                        if (notNullElement > 0) {
+                            for (int k = 0; k < realMass.length; k++) {
+                                //for real
+                                bufferColumn[k] = realMass[k][j];
+                                realMass[k][j] = realMass[k][notNullElement];
+                                realMass[k][notNullElement] = bufferColumn[k];
+                                //for image
+                                bufferColumn[k] = imageMass[k][j];
+                                imageMass[k][j] = imageMass[k][notNullElement];
+                                imageMass[k][notNullElement] = bufferColumn[k];
+                            }
+                            //swap order of variable
+                            c1 = orderElements[j];
+                            orderElements[j] = orderElements[notNullElement];
+                            orderElements[notNullElement] = c1;
+                        }
+                        if(val > 0 && notNullElement > 0) {
+                            swapLine(realMass, imageMass, i, i + val);
+                        }
+                        val++;
+                    }
+                    break;
+                }
+            }
+            //if real is not 1 or 0 and image not 0 division
+            if ((realMass[i][j] != 1 && realMass[i][j] != 0) || imageMass[i][j] != 0) {
+                cr = realMass[i][j];
+                ci = imageMass[i][j];
+                for (int k = j; k < realMass[0].length; k++) {
+                    double rm = realMass[i][k];
+                    double im = imageMass[i][k];
+                    double dev = Math.pow(cr, 2) + Math.pow(ci, 2);
+                    realMass[i][k] = (rm*cr + im*ci)/dev;
+                    imageMass[i][k] = (im*cr - rm*ci)/dev;
+                }
+
+                System.out.printf("R%d / %s -> R%d\n", i + 1, complexToString(cr, ci), i + 1);
+            }
+
+            //do diagonal matrix
+            for(int k = i + 1; k < realMass.length; k++) {
+                if (realMass[k][j] != 0 || imageMass[k][j] != 0) {
+                    cr = realMass[k][j];
+                    ci = imageMass[k][j];
+                    for (int l = j; l < realMass[k].length; l++) {
+                        realMass[k][l] -= realMass[i][l] * cr - imageMass[i][l] * ci;
+                        imageMass[k][l] -= realMass[i][l] * ci + cr * imageMass[i][l];
+                    }
+                    System.out.printf("%s * R%d + R%d -> R%d\n", complexToString(-cr, -ci), i + 1, k + 1, k + 1);
+                }
+            }
+        }
+        return new FindAllMembers(realMass, imageMass);
+    }
+
+    public boolean checkNoSolution(FindAllMembers findAllMembers){
+        Double[][] realMass = findAllMembers.realMass;
+        Double[][] imageMass = findAllMembers.imageMass;
+        /*for(Double[] m : realMass) {
+            for(double g : m) {
+                System.out.print(g + " ");
+            }
+            System.out.println();
+        }
+        System.out.println("!!!");
+        for(Double[] m : imageMass) {
+            for(double g : m) {
+                System.out.print(g + " ");
+            }
+            System.out.println();
+        }*/
+
+
+        for(int i = 0; i < realMass.length; i++) {
+            boolean stop = false;
+            for(int j = 0; j < realMass[i].length - 1; j++) {
+                if(realMass[i][j] != 0 || imageMass[i][j] != 0) {
+                    stop = true;
+                    break;
+                }
+            }
+            if (!stop && (realMass[i][realMass[i].length - 1] != 0 || imageMass[i][imageMass[i].length - 1] != 0 )) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean checkInfiniteSolution(FindAllMembers findAllMembers) {
+        Double[][] realMass = findAllMembers.realMass;
+        Double[][] imageMass = findAllMembers.imageMass;
+        if (realMass[0].length - 1 > realMass.length) return true; //if has null element - infinite solution
+        //if not diagonal matrix - infinite solution
+        for(int i = 0, j = 0; i < realMass.length && j < realMass[i].length - 1; i++, j++) {
+            if(realMass[i][j] == 0){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    //do one diagonal matrix
+    public FindAllMembers findAllMembers(FindAllMembers findAllMembers) {
+        Double[][] realMass = findAllMembers.realMass;
+        Double[][] imageMass = findAllMembers.imageMass;
+        double cr = 0;
+        double ci = 0;
+        for (int k = realMass.length - 2; k >=0; k--) {
+            for (int i = k; i >= 0; i--) {
+                if(realMass[i][k + 1] != 0 || imageMass[i][k + 1] != 0) {
+                    cr = realMass[i][k + 1];
+                    ci = imageMass[i][k + 1];
+                    for (int j = i + 1; j < realMass[i].length; j++) {
+                        realMass[i][j] -= realMass[k + 1][j] * cr - imageMass[k + 1][j] * ci;
+                        imageMass[i][j] -= realMass[k + 1][j] * ci + cr * imageMass[k + 1][j];
+                    }
+                    System.out.printf("%s * R%d + R%d -> R%d\n", complexToString(-cr, -ci), k + 1 + 1, i + 1, i + 1);
+                }
+            }
+        }
+      /*  for(Double[] m : realMass) {
+            for(double g : m) {
+                System.out.print(g + " ");
+            }
+            System.out.println();
+        }
+        System.out.println("!!!");
+        for(Double[] m : imageMass) {
+            for(double g : m) {
+                System.out.print(g + " ");
+            }
+            System.out.println();
+        }*/
+        return new FindAllMembers(realMass, imageMass);
+    }
+
+    private void swapLine(Double[][] realMass, Double[][] imageMass, int i, int notNullElement){
+        double[] bufferLine = new double[realMass[0].length]; //buffer for change line
+        for (int k = 0; k < realMass[i].length; k++) {
+            //for real value
+            bufferLine[k] = realMass[i][k];
+            realMass[i][k] = realMass[notNullElement][k];
+            realMass[notNullElement][k] = bufferLine[k];
+            //for image value
+            bufferLine[k] = imageMass[i][k];
+            imageMass[i][k] = imageMass[notNullElement][k];
+            imageMass[notNullElement][k] = bufferLine[k];
+        }
+        System.out.printf("R%d <-> R%d\n", i + 1, notNullElement + 1);
+    }
+
+    public int getOrder(int i) {
+        return orderElements[i];
+    }
+
+    public String complexToString(double cr, double ci){
+        String st = "";
+        if(cr != 0) st += cr;
+        if(ci > 0) st += "+";
+        if(ci == 1) st += "i";
+        else if(ci == -1) st += "-i";
+        else if(ci != 0) st += ci + "i";
+        return st;
+    }
+}
+package solver;
+
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+
+public class CommandForFind implements Command { //this is command
+    FindAllMembers findAllMembers;
+
+    CommandForFind(FindAllMembers findAllMembers) {
+        this.findAllMembers = findAllMembers;
+    }
+
+    public ArrayList<String> execute(){
+        boolean stop = false;
+        ArrayList<String> result = new ArrayList<>();
+        System.out.println("Start solving the equation.");
+        findAllMembers = findAllMembers.findY();
+        if(findAllMembers.checkNoSolution(findAllMembers)) {
+            result.add("No solutions");
+            System.out.println("No solutions");
+            stop = true;
+        }
+        if(findAllMembers.checkInfiniteSolution(findAllMembers) && !stop) {
+            result.add("Infinitely many solutions");
+            System.out.println("Infinitely many solutions");
+            stop = true;
+        }
+        if(!stop) {
+            findAllMembers = findAllMembers.findAllMembers(findAllMembers);
+            for(int i = 0; i < findAllMembers.realMass[0].length - 1; i++) {
+                int order = findAllMembers.getOrder(i);
+                String stringResult = "";
+                if(findAllMembers.realMass[order][findAllMembers.realMass[order].length - 1] != 0){
+                    stringResult += findAllMembers.realMass[order][findAllMembers.realMass[order].length - 1];
+                }
+                if(findAllMembers.imageMass[order][findAllMembers.imageMass[order].length - 1] > 0){
+                    stringResult += "+";
+                }
+                if(findAllMembers.imageMass[order][findAllMembers.imageMass[order].length - 1] == 1){
+                    stringResult += "+i";
+                }
+                else if(findAllMembers.imageMass[order][findAllMembers.imageMass[order].length - 1] == -1){
+                    stringResult += "-i";
+                }
+                else if(findAllMembers.imageMass[order][findAllMembers.imageMass[order].length - 1] != 0){
+                    stringResult += findAllMembers.imageMass[order][findAllMembers.imageMass[order].length - 1] + "i";
+                }
+
+                if(stringResult.length() == 0) stringResult += "0";
+
+                result.add(stringResult);
+            }
+        }
+        return result;
+    }
+}
+
+package solver;
+
+import java.util.ArrayList;
+
+public class Controller { //this is invoker
+    private Command command;
+
+    public void setCommand(Command command){
+        this.command = command;
+       // System.out.println("Command");
+    }
+
+    public ArrayList<String> executeCommand(){
+        return command.execute();
+    }
+}
