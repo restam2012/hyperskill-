@@ -1,0 +1,106 @@
+//package phonebook;
+
+import java.io.File;
+
+public class Main {
+    public static void main(String[] args) {
+        Finding finding = new Finding();
+        finding.setMethod(new LinearSearch());
+        finding.find(new File("K:/directory.txt"), new File("K:/find.txt"));
+    }
+}
+
+
+//package phonebook;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Scanner;
+
+//it is Strategy pattern
+public class Finding {
+    private FindingMethod method;
+
+    public void setMethod(FindingMethod method){
+        this.method = method;
+    }
+
+    public void find(File inputFile, File fileOfFinding){
+        Map<String, Integer> input = new LinkedHashMap<>();
+        ArrayList<String> listOfFinding = new ArrayList<>();
+
+        try (FileReader fileReader = new FileReader(inputFile)){
+            Scanner scanner = new Scanner(fileReader);
+            while (scanner.hasNextLine()) {
+                Integer buffer = scanner.nextInt();
+                input.put(scanner.nextLine().trim(), buffer);
+            }
+        } catch (FileNotFoundException e){
+            System.out.println("File directory not find");
+        }
+        catch (IOException e){
+            System.out.println("Exception " + e);
+        }
+
+        try (FileReader fileReader = new FileReader(fileOfFinding)){
+            Scanner scanner = new Scanner(fileReader);
+            while (scanner.hasNextLine()) {
+                listOfFinding.add(scanner.nextLine().trim());
+            }
+        } catch (FileNotFoundException e){
+            System.out.println("File find not find");
+        }
+        catch (IOException e){
+            System.out.println("Exception " + e);
+        }
+        method.find(input, listOfFinding);
+    }
+
+}
+
+
+//package phonebook;
+
+import java.util.ArrayList;
+import java.util.Map;
+
+//find by linear search
+public class LinearSearch implements FindingMethod {
+    public void find(Map<String, Integer> input, ArrayList<String> listOfFinding){
+        long startTime = System.currentTimeMillis();
+        int count = 0;
+        boolean find = false;
+        System.out.println("Start searching...");
+        for (String val : listOfFinding){
+            find = false;
+            for (String str : input.keySet()){
+                if(str.equals(val)){
+                    find = true;
+                    count++;
+                    break;
+                }
+
+            }
+            if(!find) System.out.println(val);
+        }
+        long endTime = System.currentTimeMillis();
+        long sec = (endTime - startTime)/1000;
+        long min = sec / 60;
+        System.out.printf("Found %d / %d entries. Time taken: %d min. %d sec. %d ms.", count, listOfFinding.size(),min, sec, (endTime - startTime)%1000);
+    };
+}
+
+  
+  //package phonebook;
+
+import java.util.ArrayList;
+import java.util.Map;
+
+public interface FindingMethod {
+    void find(Map<String, Integer> input, ArrayList<String> listOfFinding);
+}
