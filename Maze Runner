@@ -1,0 +1,450 @@
+package maze;
+
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+public class Main {
+    static boolean stopThread = false, startDo = true;
+    public static void main(String[] args) {
+        boolean exit = false;
+        Scanner scanner = new Scanner(System.in);
+        int[][] maze = new int[0][0];
+        while (!exit) {
+            System.out.println("=== Menu ===");
+            System.out.println("1. Generate a new maze");
+            System.out.println("2. Load a maze");
+            if (maze.length > 0) {
+                System.out.println("3. Save the maze");
+                System.out.println("4. Display the maze");
+                System.out.println("5. Find the escape");
+            }
+            System.out.println("0. Exit");
+            int selected = Integer.parseInt(scanner.nextLine());
+            Main main = new Main();
+            switch (selected){
+                case 1:
+                    System.out.println("Please, enter the size of a maze");
+                    int x = Integer.parseInt(scanner.nextLine());
+                    CreateRandomMaze createRandomMaze = new CreateRandomMaze(x, x);
+                    maze = createRandomMaze.findMinSpanningTree(createRandomMaze.createMass());
+                    ShowMaze showMaze = new ShowMaze();
+                    showMaze.createMaze(maze);
+                    break;
+                case 2:
+                    maze = main.loadMaze();
+                    break;
+                case 3:
+                    main.saveMaze(maze);
+                    break;
+                case 4:
+                    ShowMaze showMaze1 = new ShowMaze();
+                    showMaze1.createMaze(maze);
+                    break;
+                case 5:
+                    FindStartAndFinish f = new FindStartAndFinish();
+                    FindStartAndFinish.ForXAndY xyStart = f.findStart(maze);
+                    FindStartAndFinish.ForXAndY xyEnd = f.findEnd(maze);
+                    ArrayList<Integer> tripX = new ArrayList<>();
+                    ArrayList<Integer> tripY = new ArrayList<>();
+                    FindTheEscape findTheEscape = new FindTheEscape(maze,xyStart.x, xyStart.y, xyEnd.x, xyEnd.y, tripX, tripY);
+                    findTheEscape.start();
+                    while (!stopThread || !startDo){
+                        try {
+                            Thread.sleep(10);
+                        } catch (InterruptedException e){};
+                    }
+                    stopThread = false;
+                    break;
+                case 0:
+                    System.out.println("Bye!");
+                    exit = true;
+                    break;
+                default:
+                    System.out.println("Incorrect option. Please try again.");
+                    break;
+            }
+        }
+    }
+
+    public void saveMaze(int [][] maze){
+        Scanner scanner = new Scanner(System.in);
+        String name = "";
+        while (name.length() == 0) {
+            name = scanner.nextLine();
+        }
+        try (FileWriter fileWriter = new FileWriter(name)){
+            fileWriter.write(maze.length + "\n");
+            fileWriter.write(maze[0].length + "\n");
+            for (int[] line : maze){
+                for(int i : line){
+                    fileWriter.write(i + "\n");
+                }
+            }
+        }
+        catch (IOException e){
+            System.out.println("Error in save file");
+        }
+    }
+
+    public int[][] loadMaze(){
+        int[][] result = new int[0][0];
+        String name = "";
+        name = new Scanner(System.in).nextLine();
+        try (FileReader fileReader = new FileReader(name)){
+            Scanner scanner = new Scanner(fileReader);
+            int x = Integer.parseInt(scanner.nextLine());
+            int y = Integer.parseInt(scanner.nextLine());
+            result = new int[x][y];
+            for(int i = 0; i < result.length; i++){
+                for(int j = 0; j < result[i].length; j++){
+                    result[i][j] = Integer.parseInt(scanner.nextLine());
+                }
+            }
+        } catch (FileNotFoundException e){
+            System.out.printf("The file %w does not exist\n", name);
+        }
+        catch (IOException e){
+            System.out.println("Cannot load the maze. It has an invalid format");
+        }
+        return result;
+    }
+}
+
+    package maze;
+    
+    import java.util.ArrayDeque;
+    import java.util.ArrayList;
+    import java.util.Queue;
+    import java.util.TreeSet;
+    
+    public class FindTheEscape extends Thread {
+        int maze[][];
+        int x, y, endX, endY;
+        ArrayList<Integer> oldTripX = new ArrayList<>();
+        ArrayList<Integer> oldTripY = new ArrayList<>();
+    
+        FindTheEscape(int[][] maze, int x, int y, int endX, int endY, ArrayList tripX, ArrayList tripY) {
+            this.maze = maze.clone();
+            this.x = x;
+            this.y = y;
+            this.endX = endX;
+            this.endY = endY;
+            this.oldTripX = tripX;
+            this.oldTripY = tripY;
+        }
+    
+        public void run() {
+            maze[x][y] = 2;
+            ArrayList<Integer> tripX = new ArrayList<>();
+            ArrayList<Integer> tripY = new ArrayList<>();
+            for(int i = 0; i < oldTripY.size(); i++){
+                tripX.add(oldTripX.get(i));
+                tripY.add(oldTripY.get(i));
+            }
+            tripX.add(x);
+            tripY.add(y);
+            if (x == endX && y == endY) {
+                Main.startDo = false;
+                Main.stopThread = true;
+    
+                /*while (tripY.peek() != null) {
+                    System.out.println(tripX.poll() + " " + tripY.poll());
+                }*/
+              /*  for(int i = 0; i < tripY.size(); i++){
+                    System.out.println(tripX.get(i) + " " + tripY.get(i));
+                }*/
+    
+                try{
+                    Thread.sleep(10);
+                } catch (InterruptedException e){}
+    
+                maze = delete2(maze);
+                for(int i = 0; i < tripX.size(); i++){
+                    int xCoord = tripX.get(i);
+                    int yCoord = tripY.get(i);
+                    maze[xCoord][yCoord] = 2;
+                }
+                ShowMaze showMaze = new ShowMaze();
+                showMaze.createMaze(maze);
+    
+                maze = delete2(maze);
+                Main.startDo = true;
+            }
+            if (x - 1 >= 0 && maze[x - 1][y] == 0 && !Main.stopThread) {
+                FindTheEscape findTheEscape = new FindTheEscape(maze, x - 1, y, endX, endY, tripX, tripY);
+                findTheEscape.start();
+            }
+            if (x + 1 < maze.length && maze[x + 1][y] == 0 && !Main.stopThread) {
+                FindTheEscape findTheEscape = new FindTheEscape(maze, x + 1, y, endX, endY, tripX, tripY);
+                findTheEscape.start();
+            }
+            if (y - 1 >= 0 && maze[x][y - 1] == 0 && !Main.stopThread) {
+                FindTheEscape findTheEscape = new FindTheEscape(maze, x, y - 1, endX, endY, tripX, tripY);
+                findTheEscape.start();
+            }
+            if (y + 1 < maze[0].length && maze[x][y + 1] == 0 && !Main.stopThread) {
+                FindTheEscape findTheEscape = new FindTheEscape(maze, x, y + 1, endX, endY, tripX, tripY);
+                findTheEscape.start();
+            }
+        }
+    
+        public int[][] delete2(int[][] maze){
+            for(int i = 0; i < maze.length; i++){
+                for (int j = 0; j < maze[i].length; j++){
+                    if(maze[i][j] == 2) maze[i][j] = 0;
+                }
+            }
+            return maze;
+        }
+    }
+
+package maze;
+
+public class ShowMaze {
+    public void createMaze(int[][] maze){
+        for(int[] line : maze){
+            for(int point : line){
+                if(point == 1) System.out.print("\u2588\u2588");
+                else if(point == 0) System.out.print("  ");
+                else System.out.print("//");
+            }
+            System.out.println();
+        }
+    }
+}
+
+package maze;
+
+import java.beans.IntrospectionException;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Random;
+
+public class CreateRandomMaze {
+    int x1, y1, x, y;
+    boolean evenX = true, evenY = true;
+    CreateRandomMaze(int x, int y){
+        this.x1 = x - 2;
+        this.y1 = y - 2;
+    }
+
+    public int[][] createMass(){
+
+
+        //create mass with edge
+        if(x1 % 2 == 0){
+            x = x1/2 ;
+        }
+        else {
+            x = (x1 + 1)/2;
+            evenX = false;
+        }
+
+        if(y1 % 2 == 0){
+            y = y1/2;
+        }
+        else {
+            y = (y1 + 1)/2;
+            evenY = false;
+        }
+        //create table of graf
+        int randVal = 100;
+        Random r = new Random();
+        int[][] randMaze = new int[x * y][x * y];
+        for(int i = 0; i < randMaze[0].length; i++){
+            if(i - 1 >= 0 && i % y != 0) randMaze[i][i - 1] = r.nextInt(randVal);
+            if(i + 1 < randMaze.length && (i + 1) % y != 0) randMaze[i][i + 1] = r.nextInt(randVal);
+            if(i - y >= 0) randMaze[i][i - y] = r.nextInt(randVal);
+            if(i + y < randMaze.length) randMaze[i][i + y] = r.nextInt(randVal);
+        }
+
+        /*for (int[] m : randMaze){
+            for (int d : m){
+                System.out.print(d + " ");
+            }
+            System.out.println();
+        }*/
+        return randMaze;
+    }
+
+    public int[][] findMinSpanningTree(int[][] maze){
+        ShowMaze showMaze = new ShowMaze();
+        ArrayList<Integer> listOfEdge = new ArrayList<>(); // array list for saving selected edges
+        int[][] resultMaze = new int[x1 + 2][y1 + 2];
+        for(int i = 0; i < resultMaze.length; i++){
+            for (int j = 0; j < resultMaze[i].length; j++){
+                resultMaze[i][j] = 1;
+            }
+        }
+        listOfEdge.add(0);
+        while (listOfEdge.size() < maze.length){
+            int minVal = Integer.MAX_VALUE, minEdgeEnd = 0, minEdgeStart = 0;
+            for(Integer val : listOfEdge){
+                for(int i = 0; i < maze[x].length; i++) {
+                    if (maze[val][i] > 0 && minVal > maze[val][i] && !listOfEdge.contains(i)) {
+                        minVal = maze[val][i];
+                        minEdgeEnd = i;
+                        minEdgeStart = val;
+                    }
+                }
+            }
+
+            listOfEdge.add(minEdgeEnd);
+            ForShitLine f1 = new ForShitLine(minEdgeStart, y);
+            int startLine = f1.line;
+            int startH = f1.h;
+
+            ForShitLine f2 = new ForShitLine(minEdgeEnd, y);
+            int endLine = f2.line;
+            int endH = f2.h;
+
+            ForShitLine difF = new ForShitLine(minEdgeEnd - minEdgeStart, y,true);
+            int difLine = difF.line;
+            int difH = difF.h;
+
+            //set trip
+            boolean tripEr = false;
+            /*if((startLine < maze[0].length - 1 || EvenY) && (startH < maze.length - 1 || EvenX)){
+                System.out.println("startLine " + startLine);
+                System.out.println("startH " + startLine);
+                resultMaze[startH * 2 + 1][startLine * 2 + 1] = 0;
+            }*/
+            resultMaze[startH * 2 + 1][startLine * 2 + 1] = 0;
+
+        /*    if((startLine + difLine < maze[0].length - 1 || EvenY) && (startH + difH < maze.length - 1 || EvenX)){
+                if(startH * 2 + difH + 1 == 0 || startLine * 2 + difLine + 1 == resultMaze[0].length - 1 ||
+                        startLine * 2 + difLine + 1 == 0 || startH * 2 + difH + 1 == resultMaze.length - 1){
+                    tripEr = true;
+                    System.out.println("I was here!" + tripEr);
+                }
+                else {
+                    System.out.println("difLine" + difLine);
+                    System.out.println("point to startH" + (startH * 2 + difH + 1));
+                    System.out.println("point to startLine" + (startLine * 2 + difLine + 1));
+                    resultMaze[startH * 2 + difH + 1][startLine * 2 + difLine + 1] = 0;
+                }
+            }*/
+
+            resultMaze[startH * 2 + difH + 1][startLine * 2 + difLine + 1] = 0;
+
+
+          /*  if((endLine < maze[0].length - 1 || EvenY) && (endH < maze.length - 1 || EvenX) && !tripEr){
+                System.out.println("TripErr " + tripEr);
+                System.out.println("endLine " + endLine);
+                System.out.println("endH " + endH);
+                resultMaze[endH * 2 + 1][endLine * 2 + 1] = 0;
+            }*/
+            resultMaze[endH * 2 + 1][endLine * 2 + 1] = 0;
+
+            if(evenX && endH * 2 + 1 == resultMaze.length - 3){
+                resultMaze[endH * 2 + 2][endLine * 2 + 1] = 0;
+            }
+
+            if(evenY && endLine * 2 + 1 == resultMaze[0].length - 3){
+                resultMaze[endH * 2 + 1][endLine * 2 + 2] = 0;
+            }
+
+
+        }
+        boolean findStart = false, findStop = false;
+        for(int i = 1; i < resultMaze.length - 1; i++){
+            if(resultMaze[i][1] == 0 && !findStart){
+                findStart = true;
+                resultMaze[i][0] = 0;
+            }
+            if(resultMaze[i][resultMaze[i].length - 2] == 0 && !findStop){
+                findStop = true;
+                resultMaze[i][resultMaze[i].length - 1] = 0;
+            }
+            if(findStart && findStop) break;
+        }
+        return resultMaze;
+    }
+
+}
+
+package maze;
+
+public class FindStartAndFinish {
+    public class ForXAndY{
+        int x, y;
+        ForXAndY(int x, int y){
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    public ForXAndY findStart(int[][]maze){
+        int x = 0, y = 0;
+        for(int i = 1; i < maze.length; i++){
+            if(maze[i][0] == 0){
+                x = i;
+            }
+        }
+        return new ForXAndY(x, y);
+    }
+    public ForXAndY findEnd(int[][]maze){
+        int x = 0, y = maze[0].length - 1;
+        for(int i = 1; i < maze.length; i++){
+            if(maze[i][y] == 0){
+                x = i;
+            }
+        }
+        return new ForXAndY(x, y);
+    }
+}
+
+package maze;
+
+public class ForShitLine {
+    int num, line, h = 0;
+    ForShitLine(int num, int y) {
+        this.num = num;
+        if (num >= 0) {
+            while (num >= y) {
+                num -= y;
+                h++;
+            }
+            if(num == y) num--;
+            line = num;
+        }
+        else {
+            while (Math.abs(num) >= y) {
+                num += y;
+                h--;
+            }
+            if(-num == y) num++;
+            line = num;
+        }
+    }
+
+    ForShitLine(int num, int y, boolean b) {
+        this.num = num;
+        if (num >= 0) {
+            while (num >= y) {
+                num -= y;
+                h++;
+            }
+            line = num;
+        }
+        else {
+            while (Math.abs(num) >= y) {
+                num += y;
+                h--;
+            }
+            line = num;
+        }
+    }
+
+    int getLine(){
+        return line;
+    }
+    int getH(){
+        return h;
+    }
+
+}
